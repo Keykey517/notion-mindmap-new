@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>思维导图</title>
+<style>
+:root{font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#243047;background:#f7f9fd}*{box-sizing:border-box}body{margin:0}button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.38;cursor:not-allowed}
+.app{height:100vh;min-height:400px;display:flex;flex-direction:column}
+.top{background:#fff;border-bottom:1px solid #e5eaf2;padding:10px 12px 8px;z-index:3;position:relative}
+.heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}.heading strong{font-size:16px;letter-spacing:.2px}
+.tag{font-size:11px;color:#59708c;background:#eff4fc;padding:2px 8px;border-radius:10px}
+.hint{color:#708098;font-size:12px;margin-left:auto}
+.tools{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tools button,.box button{border:1px solid #dce4ef;background:#fff;color:#34445f;border-radius:7px;padding:4px 8px;white-space:nowrap}
+.tools button:hover:not(:disabled),.box button:hover{background:#edf4ff;border-color:#a7c4f5}
+.tools .primary{background:#2563eb;color:#fff;border-color:#2563eb}.tools .primary:hover:not(:disabled){background:#1e55ce;color:#fff}
+.tools button.on{background:#fff3e0;border-color:#f0b95f;color:#8a4b16}
+.divider{width:1px;height:20px;background:#e3e8f0;margin:2px}
+.board{flex:1;position:relative;overflow:hidden;background-color:#f7f9fd;background-image:radial-gradient(#dbe3f0 1px,transparent 1px);background-size:20px 20px;touch-action:none;cursor:grab}
+.board.dragging{cursor:grabbing}.board.relating{cursor:crosshair}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0}
+.links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.nodes{position:absolute;left:0;top:0}
+.node{position:absolute;border:1px solid #bfcde2;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(31,55,101,.10);padding:6px 11px;display:flex;align-items:center;outline:none;cursor:pointer;user-select:none}
+.node.root{background:#e9f1ff;border-color:#8fb5fb;box-shadow:0 3px 12px rgba(31,55,101,.14)}
+.node.active{border-color:#2563eb!important;box-shadow:0 0 0 3px #d8e7ff,0 3px 10px rgba(31,55,101,.12)}
+.node.drop{border-color:#12b76a!important;box-shadow:0 0 0 3px #c9f0dd}
+.label{min-width:0;flex:1;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;font-size:13px}
+.node.root .label{font-size:15px}
+.fold{background:#e8f0ff;color:#2456aa;border-radius:10px;font-size:11px;padding:1px 6px;margin-left:5px;flex:none;cursor:pointer}
+.node .addbtn,.node .relbtn{position:absolute;width:20px;height:20px;border-radius:50%;border:1px solid #a7c4f5;background:#fff;color:#2563eb;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;padding:0;cursor:pointer;z-index:2}
+.node .addbtn{right:-10px;top:50%;transform:translateY(-50%)}
+.node .relbtn{right:-10px;bottom:-10px;font-size:11px;color:#8a4b16;border-color:#f0b95f}
+.node:hover .addbtn,.node.active .addbtn,.node:hover .relbtn,.node.active .relbtn{opacity:1;pointer-events:auto}
+.node .addbtn:hover{background:#2563eb;color:#fff}.node .relbtn:hover{background:#f0b95f;color:#fff}
+.edit-field{width:100%;border:0;outline:0;background:transparent;color:inherit;font-weight:600;font-size:13px}
+.ghost{position:fixed;z-index:30;pointer-events:none;background:#fff;border:1px dashed #2563eb;border-radius:10px;padding:5px 10px;font-size:13px;font-weight:600;color:#1d3154;box-shadow:0 6px 18px rgba(31,55,101,.25);max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transform:translate(-50%,-50%)}
+.palette{position:fixed;z-index:40;background:#fff;border:1px solid #e0e7f1;border-radius:12px;box-shadow:0 12px 30px rgba(21,43,70,.22);padding:10px;width:238px}
+.palette[hidden]{display:none}
+.prow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.sw{height:26px;border-radius:8px;border:1px solid #cfd8e6;cursor:pointer;padding:0}
+.sw.sel{outline:2px solid #2563eb;outline-offset:1px}
+.popt{display:flex;align-items:center;gap:6px;font-size:12px;color:#52627b;margin-top:9px}
+.palink{border:0;background:none;color:#2563eb;font-size:12px;padding:2px;margin-top:4px;cursor:pointer}
+.foot{display:flex;gap:12px;justify-content:space-between;align-items:center;background:#fff;border-top:1px solid #e5eaf2;padding:6px 12px;color:#697993;font-size:11px}
+.foot span:last-child{text-align:right}
+.shade{position:fixed;inset:0;z-index:50;background:#16223870;display:none;align-items:center;justify-content:center;padding:14px}
+.shade.open{display:flex}
+.box{width:min(600px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 18px 50px #152b4660}
+.box h2{font-size:17px;margin:0 0 10px}.box p{margin:8px 0;color:#52627b}
+.box textarea{display:block;width:100%;height:170px;resize:vertical;border:1px solid #dce4ef;border-radius:8px;padding:10px;color:#34445f;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.box .row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.box .close{float:right}.box kbd{padding:1px 5px;border-radius:4px;background:#edf1f8;border:1px solid #dbe3f0}
+.box li{margin:5px 0}.box code{background:#f2f5fa;padding:1px 4px;border-radius:4px}
+.warn{font-size:12px;color:#a1561c!important}
+@media(max-width:680px){.hint{width:100%;margin:0}.top{padding:8px}.tools{gap:4px}.tools button{padding:4px 6px;font-size:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="heading"><strong>思维导图</strong><span class="tag" id="mapName"></span><span class="hint">悬停节点右侧「＋」加子节点 · 双击改名 · 拖动节点可移动或换父级 · 右键换颜色</span></div>
+    <div class="tools" aria-label="思维导图工具栏">
+      <button class="primary" id="child" title="Tab">＋ 子节点</button><button id="sibling" title="Enter">＋ 同级</button><button id="newroot" title="新建一个独立的中心主题">＋ 中心主题</button>
+      <span class="divider"></span><button id="rename" title="F2">改名</button><button id="remove" title="Delete">删除</button><button id="promote" title="把选中节点变成独立的中心主题">升为中心</button>
+      <span class="divider"></span><button id="colorBtn" title="给节点或整条分支上色">颜色 ▾</button><button id="relateBtn" title="先选中起点，再点击目标节点">连线</button>
+      <span class="divider"></span><button id="up" title="Alt+↑">上移</button><button id="down" title="Alt+↓">下移</button><button id="fold">折叠/展开</button>
+      <span class="divider"></span><button id="undo" title="Ctrl/⌘+Z">撤销</button><button id="redo" title="Ctrl/⌘+Y">重做</button>
+      <span class="divider"></span><button id="minus">－</button><button id="fit" title="适应画布">适应</button><button id="plus">＋</button>
+      <span class="divider"></span><button id="backup">备份/导入</button><button id="help">帮助</button>
+    </div>
+  </header>
+  <main id="board" class="board" aria-label="思维导图画布">
+    <div id="stage" class="stage">
+      <svg id="links" class="links" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#e8873b"/></marker>
+          <marker id="arrowSel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#e5484d"/></marker>
+        </defs>
+        <g id="linkLayer"></g>
+      </svg>
+      <div id="nodes" class="nodes"></div>
+    </div>
+  </main>
+  <footer class="foot"><span id="info"></span><span id="status" role="status">本地保存，建议定期导出 JSON</span></footer>
+</div>
+<div id="ghost" class="ghost" hidden></div>
+<div id="palette" class="palette" hidden>
+  <div class="prow" id="swatches" role="group" aria-label="颜色"></div>
+  <label class="popt"><input type="checkbox" id="applyBranch"> 同时应用到整条子分支</label>
+  <button class="palink" id="paletteClose" type="button">关闭</button>
+</div>
+<div id="helpPane" class="shade"><section class="box" role="dialog" aria-modal="true" aria-labelledby="helpTitle"><button class="close" data-close="helpPane">关闭</button><h2 id="helpTitle">使用说明</h2><ul>
+<li><b>加节点：</b>鼠标移到节点上，点右侧的「＋」；或选中后按 <kbd>Tab</kbd> 加子节点、<kbd>Enter</kbd> 加同级。层级不限，可以一直往下加。</li>
+<li><b>多个中心主题：</b>点工具栏「＋ 中心主题」新增；把已有节点选中后点「升为中心」可把它独立出来。</li>
+<li><b>颜色归类：</b>右键节点，或选中后点工具栏「颜色」，可给单个节点上色；勾选「同时应用到整条子分支」可给整条分支上色，连线颜色会跟着分支走。</li>
+<li><b>连线：</b>选中起点后点「连线」，再点目标节点；或直接拖动节点右下角的「→」到另一个节点上松手。</li>
+<li><b>移动：</b>拖动中心主题 = 整体移动这个分支岛；拖动普通节点到另一个节点上松手 = 换父级。</li>
+<li><b>其它：</b>双击改名（<kbd>F2</kbd>）、<kbd>Delete</kbd> 删除、方向键在节点间跳转、<kbd>Alt</kbd>+↑/↓ 调整同级顺序、<kbd>Ctrl/⌘+Z</kbd> 撤销、<kbd>Ctrl/⌘+Y</kbd> 重做；点「适应」看全图，<kbd>Ctrl/⌘</kbd>+滚轮缩放。</li>
+</ul><p class="warn">数据仅保存在当前浏览器中，不会自动同步到 Notion 或其他设备。隐私模式、清理网站数据或第三方嵌入限制可能使自动保存失效。请通过「备份/导入」定期复制或下载 JSON。</p><p>同一托管网页可用不同地址参数创建互不覆盖的本机导图：例如 <code>?map=work</code>、<code>?map=reading</code>。网址参数只隔离本机存储，不负责云端同步。</p></section></div>
+<div id="backupPane" class="shade"><section class="box" role="dialog" aria-modal="true" aria-labelledby="backupTitle"><button class="close" data-close="backupPane">关闭</button><h2 id="backupTitle">备份 / 导入 JSON</h2><p>下方是当前导图的完整 JSON，可手动复制保存，也可下载文件。要恢复备份：粘贴 JSON 或选择 JSON 文件，然后点击「导入并覆盖」。</p><textarea id="jsonText" spellcheck="false" aria-label="导图 JSON"></textarea><div class="row"><button id="copy">复制 JSON</button><button id="download">下载 JSON</button><button id="choose">选择 JSON 文件</button><button id="apply">导入并覆盖</button><input id="file" type="file" accept=".json,application/json" hidden></div><p class="warn">导入将替换当前导图；请先备份需要保留的内容。</p><p id="importError" class="warn" role="alert"></p></section></div>
+<script>
+(()=>{'use strict';
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const board=$('board'),stage=$('stage'),links=$('links'),linkLayer=$('linkLayer'),nodes=$('nodes'),ghost=$('ghost'),palette=$('palette');
+const mapId=(new URLSearchParams(location.search).get('map')||'default').trim().slice(0,40)||'default';
+const KEY='mindmap-v2:'+location.pathname+':'+mapId;
+const OLDKEY='mindmap-lite-v1:'+location.pathname+':'+mapId;
+$('mapName').textContent='导图：'+mapId;
+
+const RW=196,RH=58,NW=168,NH=50,XG=62,YG=14,PAD=48,MAX=500,MAXDEPTH=60;
+const uid=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():'n'+Date.now().toString(36)+Math.random().toString(36).slice(2);
+const COLORS=[
+ {key:'',name:'默认（无色）',bg:'',bd:'',tx:'',ln:''},
+ {key:'blue',name:'蓝色',bg:'#e3efff',bd:'#8fb8f0',tx:'#1b4c8f',ln:'#6f9fe6'},
+ {key:'teal',name:'青色',bg:'#dcf5f1',bd:'#7fd0c6',tx:'#0f5f58',ln:'#5cb8ac'},
+ {key:'green',name:'绿色',bg:'#e2f6e4',bd:'#8fd19a',tx:'#1d6b2c',ln:'#69bb78'},
+ {key:'yellow',name:'黄色',bg:'#fdf3d4',bd:'#e5c66b',tx:'#7a5a12',ln:'#d6b04a'},
+ {key:'orange',name:'橙色',bg:'#ffe9d9',bd:'#f0b183',tx:'#8a4b16',ln:'#e0965c'},
+ {key:'red',name:'红色',bg:'#ffe1e1',bd:'#ef9c9c',tx:'#8f2020',ln:'#e07b7b'},
+ {key:'pink',name:'粉色',bg:'#ffe4f0',bd:'#efa9c9',tx:'#8d2a58',ln:'#dd8ab4'},
+ {key:'purple',name:'紫色',bg:'#ece5fd',bd:'#b39ff0',tx:'#4b2f96',ln:'#9a83e0'},
+ {key:'gray',name:'灰色',bg:'#eef1f6',bd:'#b9c2d0',tx:'#44506a',ln:'#a6b0c0'}
+];
+const col=k=>COLORS.find(c=>c.key===k)||COLORS[0];
+const LINE_DEFAULT='#a9bfde';
+
+let roots=[],relations=[],selected=null,selectedRel=null,history=[],index=0,zoom=1,tx=0,ty=0;
+let positions=new Map(),rootSet=new Set(),extent={w:600,h:400},rawBounds={minX:0,minY:0,maxX:0,maxY:0};
+let editing=false,relateMode=false,relating=null,drag=null,rafPending=false;
+
+/* ---------- 数据工具 ---------- */
+function walkNode(n,fn,p){fn(n,p);for(const c of n.children)walkNode(c,fn,n)}
+function walkRoots(fn){for(const r of roots)walkNode(r,fn,null)}
+function findNode(id){let res=null;walkRoots((n,p)=>{if(n.id===id)res={node:n,parent:p}});return res}
+function count(){let c=0;walkRoots(()=>{c++});return c}
+function isDescendant(rootId,id){const f=findNode(rootId);if(!f)return false;let hit=false;walkNode(f.node,n=>{if(n.id===id)hit=true});return hit}
+const sizeOf=n=>rootSet.has(n.id)?{w:RW,h:RH}:{w:NW,h:NH};
+const toRaw=(px,py)=>({x:px+rawBounds.minX-PAD,y:py+rawBounds.minY-PAD});
+const stagePt=(cx,cy)=>{const r=board.getBoundingClientRect();return{x:(cx-r.left-tx)/zoom,y:(cy-r.top-ty)/zoom}};
+function message(t){$('status').textContent=t}
+function snap(){return JSON.stringify({version:2,mapId,roots,relations})}
+
+/* ---------- 读写 ---------- */
+function save(){try{localStorage.setItem(KEY,snap());message('已保存到此浏览器（非 Notion 云端）')}catch(e){message('无法自动保存！请立即备份 JSON')}}
+function commit(){history=history.slice(0,index+1);history.push(snap());if(history.length>60)history.shift();index=history.length-1;save();render();if(selected)ensureVisible(selected)}
+function restore(){const d=JSON.parse(history[index]);roots=d.roots;relations=d.relations||[];if(selected&&!findNode(selected))selected=roots[0]?roots[0].id:null;if(selectedRel&&!relations.some(r=>r.id===selectedRel))selectedRel=null;save();render();if(selected)ensureVisible(selected)}
+
+function normalizeNode(raw,depth,st){
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('节点数据无效');
+  if(depth>MAXDEPTH)throw Error('层级超过 '+MAXDEPTH+' 层');
+  if(++st.count>MAX)throw Error('节点超过 '+MAX+' 个');
+  if(raw.children!==undefined&&!Array.isArray(raw.children))throw Error('children 必须是数组');
+  const id=(typeof raw.id==='string'&&raw.id&&!st.ids.has(raw.id))?raw.id:uid();
+  st.ids.add(id);
+  const color=COLORS.some(c=>c.key===raw.color)?raw.color:'';
+  const node={id,text:String(raw.text??'新主题').trim().slice(0,80)||'新主题',color,collapsed:!!raw.collapsed,children:(raw.children||[]).map(c=>normalizeNode(c,depth+1,st))};
+  if(depth===0){if(Number.isFinite(raw.x))node.x=raw.x;if(Number.isFinite(raw.y))node.y=raw.y}
+  return node;
+}
+function normalizeDoc(parsed){
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('JSON 不是有效的思维导图');
+  if(parsed.version!==undefined&&parsed.version!==1&&parsed.version!==2)throw Error('不支持的备份版本');
+  let list=null;
+  if(Array.isArray(parsed.roots))list=parsed.roots;
+  else if(parsed.tree!==undefined)list=[parsed.tree];
+  else if(Object.hasOwn(parsed,'text'))list=[parsed];
+  if(!list||!list.length)throw Error('JSON 不是有效的思维导图');
+  const st={count:0,ids:new Set()};
+  const rts=list.map(r=>normalizeNode(r,0,st));
+  const rels=[];
+  if(Array.isArray(parsed.relations)){
+    const seen=new Set();
+    for(const r of parsed.relations){
+      if(!r||typeof r!=='object')continue;
+      const from=r.from,to=r.to;
+      if(!st.ids.has(from)||!st.ids.has(to)||from===to)continue;
+      const k=from+'>'+to;if(seen.has(k))continue;seen.add(k);
+      rels.push({id:uid(),from,to});
+    }
+  }
+  return {roots:rts,relations:rels};
+}
+const mk=(text,children=[],color='')=>({id:uid(),text,color,collapsed:false,children});
+function seed(){
+  const r=mk('中心主题',[mk('分支一',[mk('子主题 A'),mk('子主题 B')]),mk('分支二',[mk('子主题 C')]),mk('分支三')]);
+  r.children[0].color='blue';r.children[1].color='green';r.children[2].color='orange';
+  r.x=PAD;r.y=PAD;
+  return {roots:[r],relations:[]};
+}
+function loadDoc(){
+  const saved=localStorage.getItem(KEY);
+  if(saved){const d=JSON.parse(saved);if(!d||!Array.isArray(d.roots)||!d.roots.length)throw Error('bad');return{roots:d.roots,relations:Array.isArray(d.relations)?d.relations:[]}}
+  const old=localStorage.getItem(OLDKEY);
+  if(old){message('已把旧版导图迁移到新版本');return normalizeDoc(JSON.parse(old))}
+  return seed();
+}
+
+/* ---------- 布局 ---------- */
+function layout(){
+  positions=new Map();rootSet=new Set(roots.map(r=>r.id));
+  let cursorY=PAD;
+  for(const root of roots){
+    if(!Number.isFinite(root.x))root.x=PAD;
+    if(!Number.isFinite(root.y))root.y=cursorY;
+    const sizes=new Map();
+    (function measure(n){
+      const h0=sizeOf(n).h;let h=h0;
+      if(!n.collapsed&&n.children.length){const s=n.children.reduce((a,c)=>a+measure(c),0)+YG*(n.children.length-1);h=Math.max(h0,s)}
+      sizes.set(n.id,h);return h;
+    })(root);
+    (function place(n,x,top){
+      const s=sizeOf(n),h=sizes.get(n.id),y=top+(h-s.h)/2;
+      positions.set(n.id,{x,y,w:s.w,h:s.h,n});
+      if(!n.collapsed&&n.children.length){
+        const sum=n.children.reduce((a,c)=>a+sizes.get(c.id),0)+YG*(n.children.length-1);
+        let t=top+(h-sum)/2;
+        for(const c of n.children){place(c,x+s.w+XG,t);t+=sizes.get(c.id)+YG}
+      }
+    })(root,root.x,root.y);
+    cursorY=Math.max(cursorY,root.y+sizes.get(root.id)+70);
+  }
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  for(const p of positions.values()){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x+p.w);maxY=Math.max(maxY,p.y+p.h)}
+  if(!positions.size){minX=0;minY=0;maxX=400;maxY=200}
+  rawBounds={minX,minY,maxX,maxY};
+  const dx=-minX+PAD,dy=-minY+PAD;
+  for(const p of positions.values()){p.x+=dx;p.y+=dy}
+  extent={w:maxX-minX+PAD*2,h:maxY-minY+PAD*2};
+  stage.style.width=extent.w+'px';stage.style.height=extent.h+'px';
+  links.setAttribute('width',extent.w);links.setAttribute('height',extent.h);
+}
+
+/* ---------- 渲染 ---------- */
+function anchorPt(p,tx,ty){const cx=p.x+p.w/2,cy=p.y+p.h/2,dx=tx-cx,dy=ty-cy;if(!dx&&!dy)return{x:cx,y:cy};const sx=dx?(p.w/2)/Math.abs(dx):Infinity,sy=dy?(p.h/2)/Math.abs(dy):Infinity,s=Math.min(sx,sy);return{x:cx+dx*s,y:cy+dy*s}}
+function render(){
+  layout();
+  linkLayer.replaceChildren();nodes.replaceChildren();
+  for(const p of positions.values()){
+    const n=p.n;if(n.collapsed)continue;
+    for(const c of n.children){
+      const t=positions.get(c.id);if(!t)continue;
+      const x1=p.x+p.w,y1=p.y+p.h/2,x2=t.x,y2=t.y+t.h/2,b=(x1+x2)/2;
+      const path=document.createElementNS(NS,'path');
+      path.setAttribute('d','M '+x1+' '+y1+' C '+b+' '+y1+', '+b+' '+y2+', '+x2+' '+y2);
+      path.setAttribute('fill','none');
+      const ck=c.color||n.color;
+      path.setAttribute('stroke',ck?col(ck).ln:LINE_DEFAULT);
+      path.setAttribute('stroke-width','2');
+      linkLayer.append(path);
+    }
+  }
+  for(const r of relations){
+    const a=positions.get(r.from),b=positions.get(r.to);
+    if(!a||!b)continue;
+    const p1=anchorPt(a,b.x+b.w/2,b.y+b.h/2),p2=anchorPt(b,a.x+a.w/2,a.y+a.h/2);
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2,nx=-(p2.y-p1.y),ny=p2.x-p1.x,L=Math.hypot(nx,ny)||1;
+    const d='M '+p1.x+' '+p1.y+' Q '+(mx+nx/L*26)+' '+(my+ny/L*26)+' '+p2.x+' '+p2.y;
+    const sel=r.id===selectedRel;
+    const path=document.createElementNS(NS,'path');
+    path.setAttribute('d',d);path.setAttribute('fill','none');
+    path.setAttribute('stroke',sel?'#e5484d':'#e8873b');
+    path.setAttribute('stroke-width',sel?'3':'2');
+    path.setAttribute('stroke-dasharray','7 5');
+    path.setAttribute('marker-end',sel?'url(#arrowSel)':'url(#arrow)');
+    linkLayer.append(path);
+    const hit=document.createElementNS(NS,'path');
+    hit.setAttribute('d',d);hit.setAttribute('fill','none');hit.setAttribute('stroke','transparent');hit.setAttribute('stroke-width','16');
+    hit.style.pointerEvents='stroke';hit.style.cursor='pointer';
+    hit.addEventListener('pointerdown',e=>{e.stopPropagation();selectedRel=r.id;selected=null;render();message('已选连线，按 Delete 或点「删除」移除')});
+    linkLayer.append(hit);
+  }
+  const keepFocus=!document.activeElement||document.activeElement===document.body||document.activeElement.classList.contains('node')||document.activeElement.classList.contains('addbtn');
+  for(const p of positions.values()){
+    const n=p.n,isRoot=rootSet.has(n.id),c=col(n.color);
+    const el=document.createElement('div');
+    el.className='node'+(isRoot?' root':'')+(n.id===selected?' active':'');
+    el.style.left=p.x+'px';el.style.top=p.y+'px';el.style.width=p.w+'px';el.style.height=p.h+'px';
+    if(n.color){el.style.background=c.bg;el.style.borderColor=c.bd;el.style.color=c.tx}
+    el.tabIndex=0;el.setAttribute('role','treeitem');el.setAttribute('aria-label',n.text);el.title=n.text;el.dataset.id=n.id;
+    const label=document.createElement('span');label.className='label';label.textContent=n.text;el.append(label);
+    if(n.collapsed&&n.children.length){
+      const tag=document.createElement('span');tag.className='fold';tag.textContent='+'+n.children.length;tag.title='展开';
+      tag.addEventListener('pointerdown',e=>e.stopPropagation());
+      tag.addEventListener('click',e=>{e.stopPropagation();toggleFold(n.id)});
+      el.append(tag);
+    }
+    const add=document.createElement('button');add.className='addbtn';add.type='button';add.textContent='＋';add.title='添加子节点';
+    add.addEventListener('pointerdown',e=>e.stopPropagation());
+    add.addEventListener('click',e=>{e.stopPropagation();addChildOf(n.id)});
+    el.append(add);
+    const rel=document.createElement('button');rel.className='relbtn';rel.type='button';rel.textContent='→';rel.title='拖到另一个节点上松手即可连线';
+    rel.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();startRelate(n.id,e)});
+    el.append(rel);
+    el.addEventListener('pointerdown',e=>onNodeDown(e,n.id,isRoot));
+    el.addEventListener('dblclick',()=>{select(n.id);startEdit()});
+    el.addEventListener('contextmenu',e=>{e.preventDefault();select(n.id);openPalette(e.clientX,e.clientY)});
+    nodes.append(el);
+  }
+  transform();updateTools();updateInfo();
+  if(keepFocus&&selected){const el=nodes.querySelector('[data-id="'+selected+'"]');if(el&&document.activeElement!==el)el.focus({preventScroll:true})}
+}
+function scheduleRender(){if(rafPending)return;rafPending=true;requestAnimationFrame(()=>{rafPending=false;render()})}
+function transform(){stage.style.transform='translate('+tx+'px,'+ty+'px) scale('+zoom+')'}
+function updateInfo(){
+  const f=selected?findNode(selected):null;
+  $('info').textContent=count()+' 个节点 · '+roots.length+' 个中心主题 · 已选：'+(f?f.node.text:(selectedRel?'一条连线':(relateMode?'连线模式':'无')))+' · '+Math.round(zoom*100)+'%';
+}
+function updateTools(){
+  const f=selected?findNode(selected):null,node=f?f.node:null,parent=f?f.parent:null;
+  const arr=parent?parent.children:(node?roots:[]);
+  const i=node?arr.indexOf(node):-1;
+  for(const id of ['child','rename','fold','colorBtn','relateBtn'])$(id).disabled=!node;
+  $('promote').disabled=!node||!parent;
+  $('remove').disabled=!node&&!selectedRel;
+  $('sibling').disabled=!node||!parent;
+  $('up').disabled=!node||(parent?i<=0:false);
+  $('down').disabled=!node||(parent?i>=arr.length-1:false);
+  $('undo').disabled=index===0;$('redo').disabled=index>=history.length-1;
+  $('fold').textContent=node?(node.collapsed?'展开':'折叠'):'折叠/展开';
+  $('relateBtn').classList.toggle('on',relateMode);
+}
+function select(id){
+  selected=id;selectedRel=null;relateMode=false;board.classList.remove('relating');
+  for(const el of nodes.children)el.classList.toggle('active',el.dataset.id===id);
+  const el=nodes.querySelector('[data-id="'+id+'"]');
+  if(el&&document.activeElement!==el)el.focus({preventScroll:true});
+  updateTools();updateInfo();
+}
+function ensureVisible(id){const p=positions.get(id);if(!p)return;const r=board.getBoundingClientRect(),m=25;const l=tx+p.x*zoom,t=ty+p.y*zoom;if(l<m)tx+=m-l;else if(l+p.w*zoom>r.width-m)tx+=r.width-m-(l+p.w*zoom);if(t<m)ty+=m-t;else if(t+p.h*zoom>r.height-m)ty+=r.height-m-(t+p.h*zoom);transform()}
+function fit(){const r=board.getBoundingClientRect();zoom=Math.max(.25,Math.min(1.4,(r.width-60)/extent.w,(r.height-60)/extent.h));tx=(r.width-extent.w*zoom)/2;ty=(r.height-extent.h*zoom)/2;transform()}
+function zoomAt(f,px,py){const old=zoom;zoom=Math.max(.25,Math.min(2.5,zoom*f));tx=px-(px-tx)*(zoom/old);ty=py-(py-ty)*(zoom/old);transform()}
+
+/* ---------- 编辑操作 ---------- */
+function addChildOf(id){
+  const f=findNode(id);if(!f)return;
+  if(count()>=MAX)return message('最多 '+MAX+' 个节点');
+  const c={id:uid(),text:'新主题',color:f.node.color||'',collapsed:false,children:[]};
+  f.node.collapsed=false;f.node.children.push(c);
+  selected=c.id;selectedRel=null;commit();startEdit();
+}
+function addChild(){if(selected)addChildOf(selected);else message('请先选中一个节点')}
+function addSibling(){
+  const f=selected?findNode(selected):null;if(!f)return;
+  if(!f.parent)return message('中心主题不能加同级，可用「＋ 中心主题」新建');
+  if(count()>=MAX)return message('最多 '+MAX+' 个节点');
+  const c={id:uid(),text:'新主题',color:f.node.color||'',collapsed:false,children:[]};
+  f.parent.children.splice(f.parent.children.indexOf(f.node)+1,0,c);
+  selected=c.id;selectedRel=null;commit();startEdit();
+}
+function addRoot(){
+  if(count()>=MAX)return message('最多 '+MAX+' 个节点');
+  const r={id:uid(),text:'新中心主题',color:'',collapsed:false,children:[],x:rawBounds.minX,y:rawBounds.maxY+90};
+  roots.push(r);selected=r.id;selectedRel=null;commit();ensureVisible(r.id);startEdit();
+}
+function promote(){
+  const f=selected?findNode(selected):null;if(!f)return;
+  if(!f.parent)return message('已经是中心主题了');
+  const p=positions.get(f.node.id)||{x:PAD,y:PAD};
+  const raw=toRaw(p.x,p.y);
+  f.parent.children.splice(f.parent.children.indexOf(f.node),1);
+  f.node.x=raw.x;f.node.y=raw.y;
+  roots.push(f.node);selected=f.node.id;commit();message('已提升为中心主题，可拖动调整位置');
+}
+function startEdit(){
+  if(editing||!selected)return;
+  const p=positions.get(selected);if(!p)return;
+  const el=nodes.querySelector('[data-id="'+selected+'"]');if(!el)return;
+  editing=true;
+  const old=p.n.text;
+  const input=document.createElement('input');
+  input.className='edit-field';input.maxLength=80;input.value=old;
+  el.replaceChildren(input);input.focus();input.select();
+  let done=false;
+  function finish(cancel){
+    if(done)return;done=true;editing=false;
+    const v=input.value.trim().slice(0,80);
+    if(!cancel&&v&&v!==old){p.n.text=v;commit()}
+    else render();
+    const cur=nodes.querySelector('[data-id="'+selected+'"]');if(cur)cur.focus({preventScroll:true});
+  }
+  input.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();finish(false)}else if(e.key==='Escape'){e.preventDefault();finish(true)}});
+  input.addEventListener('blur',()=>finish(false));
+}
+function removeSel(){
+  if(selectedRel){relations=relations.filter(r=>r.id!==selectedRel);selectedRel=null;commit();return message('已删除连线')}
+  const f=selected?findNode(selected):null;if(!f)return;
+  if(!f.parent){
+    if(roots.length<=1)return message('至少保留一个中心主题');
+    if(!confirm('删除中心主题「'+f.node.text+'」及其全部子节点？'))return;
+    roots=roots.filter(r=>r.id!==f.node.id);
+  }else{
+    if(f.node.children.length&&!confirm('删除「'+f.node.text+'」及其全部子节点？'))return;
+    f.parent.children.splice(f.parent.children.indexOf(f.node),1);
+  }
+  const gone=new Set();walkNode(f.node,n=>gone.add(n.id));
+  relations=relations.filter(r=>!gone.has(r.from)&&!gone.has(r.to));
+  selected=f.parent?f.parent.id:(roots[0]?roots[0].id:null);
+  commit();
+}
+function move(dir){
+  const f=selected?findNode(selected):null;if(!f)return;
+  if(!f.parent){f.node.y+=dir*36;commit();return}
+  const arr=f.parent.children,i=arr.indexOf(f.node),j=i+dir;
+  if(j<0||j>=arr.length)return;
+  arr[i]=arr[j];arr[j]=f.node;commit();
+}
+function toggleFold(id){const f=findNode(id);if(!f)return;if(!f.node.children.length)return message('当前节点没有子节点');f.node.collapsed=!f.node.collapsed;commit()}
+function fold(){if(selected)toggleFold(selected)}
+
+/* ---------- 连线 ---------- */
+function createRelation(from,to){
+  if(from===to)return message('不能连接到自身');
+  if(relations.some(r=>(r.from===from&&r.to===to)||(r.from===to&&r.to===from)))return message('这两个节点之间已有连线');
+  relations.push({id:uid(),from,to});selectedRel=null;commit();message('已添加连线（点击线可选中，按 Delete 删除）');
+}
+function startRelate(id,e){
+  if(editing)return;
+  const p=positions.get(id);if(!p)return;
+  select(id);
+  relating={from:id,el:document.createElementNS(NS,'path')};
+  relating.el.setAttribute('stroke','#e8873b');relating.el.setAttribute('stroke-width','2');
+  relating.el.setAttribute('stroke-dasharray','6 5');relating.el.setAttribute('fill','none');
+  relating.el.setAttribute('marker-end','url(#arrow)');
+  relating.el.style.pointerEvents='none';
+  linkLayer.append(relating.el);
+  board.classList.add('relating');
+  try{board.setPointerCapture(e.pointerId)}catch(err){}
+  updateTempLine(e.clientX,e.clientY);
+  message('拖到目标节点上松手即可连线');
+}
+function updateTempLine(cx,cy){
+  const p=positions.get(relating.from);if(!p)return;
+  const s=stagePt(cx,cy),a=anchorPt(p,s.x,s.y);
+  relating.el.setAttribute('d','M '+a.x+' '+a.y+' L '+s.x+' '+s.y);
+}
+function endRelate(){if(!relating)return;relating.el.remove();relating=null;board.classList.remove('relating')}
+
+/* ---------- 指针交互 ---------- */
+function nodeAt(x,y){const el=document.elementFromPoint(x,y);const nd=el&&el.closest?el.closest('.node'):null;return nd?nd.dataset.id:null}
+function onNodeDown(e,id,isRoot){
+  if(e.button!==0||editing)return;
+  if(relating)endRelate();
+  if(e.target.closest('.addbtn')||e.target.closest('.relbtn')||e.target.closest('.fold'))return;
+  if(relateMode){
+    e.preventDefault();e.stopPropagation();
+    if(id===selected){relateMode=false;board.classList.remove('relating');updateTools();return message('已取消连线')}
+    const from=selected;relateMode=false;board.classList.remove('relating');createRelation(from,id);return;
+  }
+  select(id);
+  drag={kind:isRoot?'island':'reparent',id,sx:e.clientX,sy:e.clientY,pid:e.pointerId,moved:false,dropId:null};
+}
+function setDropTarget(id){
+  if(drag.dropId===id)return;
+  if(drag.dropId){const el=nodes.querySelector('[data-id="'+drag.dropId+'"]');if(el)el.classList.remove('drop')}
+  drag.dropId=id;
+  if(id){const el=nodes.querySelector('[data-id="'+id+'"]');if(el)el.classList.add('drop')}
+}
+window.addEventListener('pointermove',e=>{
+  if(relating){updateTempLine(e.clientX,e.clientY);return}
+  if(!drag)return;
+  if(e.buttons===0){finishDrag(e,true);return}
+  const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;
+  if(!drag.moved){
+    if(Math.hypot(dx,dy)<6)return;
+    drag.moved=true;
+    try{board.setPointerCapture(drag.pid)}catch(err){}
+    board.classList.add('dragging');
+    if(drag.kind==='island'){const r=roots.find(x=>x.id===drag.id);drag.bx=r.x;drag.by=r.y}
+    else{ghost.hidden=false;const f=findNode(drag.id);ghost.textContent=f?f.node.text:''}
+  }
+  if(drag.kind==='island'){
+    const r=roots.find(x=>x.id===drag.id);if(!r)return;
+    r.x=drag.bx+dx/zoom;r.y=drag.by+dy/zoom;scheduleRender();
+  }else if(drag.kind==='reparent'){
+    ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
+    const over=nodeAt(e.clientX,e.clientY);
+    setDropTarget(over&&over!==drag.id&&!isDescendant(drag.id,over)?over:null);
+  }
+});
+window.addEventListener('pointerup',e=>{
+  if(relating){const from=relating.from;endRelate();const t=nodeAt(e.clientX,e.clientY);if(t&&t!==from)createRelation(from,t);else message('未连接到节点，已取消');return}
+  finishDrag(e,false);
+});
+window.addEventListener('pointercancel',e=>{
+  if(relating){endRelate();return}
+  finishDrag(e,true);
+});
+function finishDrag(e,cancel){
+  if(!drag)return;
+  const d=drag;drag=null;
+  board.classList.remove('dragging');ghost.hidden=true;
+  if(d.dropId){const el=nodes.querySelector('[data-id="'+d.dropId+'"]');if(el)el.classList.remove('drop')}
+  if(!d.moved||cancel)return;
+  if(d.kind==='island'){commit();return}
+  const target=d.dropId;
+  if(!target)return message('已取消：请把节点拖到另一个节点上');
+  const f=findNode(d.id),t=findNode(target);
+  if(!f||!f.parent||!t)return;
+  f.parent.children.splice(f.parent.children.indexOf(f.node),1);
+  t.node.collapsed=false;t.node.children.push(f.node);
+  selected=d.id;commit();message('已把「'+f.node.text+'」移动到「'+t.node.text+'」下');
+}
+
+/* ---------- 颜色 ---------- */
+function buildPalette(){
+  const row=$('swatches');row.replaceChildren();
+  const cur=(selected&&findNode(selected))?findNode(selected).node.color:'';
+  for(const c of COLORS){
+    const b=document.createElement('button');b.className='sw';b.type='button';b.title=c.name;
+    b.style.background=c.key?c.bg:'#fff';b.style.borderColor=c.key?c.bd:'#cfd8e6';
+    if(!c.key){b.textContent='∅';b.style.color='#9aa7bb';b.style.fontSize='12px'}
+    if(cur===c.key)b.classList.add('sel');
+    b.addEventListener('click',()=>{applyColor(c.key);palette.hidden=true});
+    row.append(b);
+  }
+}
+function openPalette(x,y){
+  if(!selected)return message('请先选中一个节点');
+  buildPalette();
+  palette.hidden=false;
+  const r=palette.getBoundingClientRect();
+  palette.style.left=Math.max(8,Math.min(x,innerWidth-r.width-8))+'px';
+  palette.style.top=Math.max(8,Math.min(y,innerHeight-r.height-8))+'px';
+}
+function applyColor(key){
+  const f=selected?findNode(selected):null;if(!f)return;
+  const branch=$('applyBranch').checked;
+  if(branch)walkNode(f.node,n=>{n.color=key});
+  else f.node.color=key;
+  commit();message('已应用颜色'+(branch?'（含整条子分支）':''));
+}
+
+/* ---------- 面板与按钮 ---------- */
+function open(id){$(id).classList.add('open');if(id==='backupPane'){$('jsonText').value=JSON.stringify({version:2,mapId,roots,relations},null,2);$('importError').textContent=''}}
+function exportText(){return JSON.stringify({version:2,mapId,roots,relations},null,2)}
+function importText(text){
+  if(text.length>2_000_000)throw Error('文件过大');
+  const parsed=JSON.parse(text);
+  const doc=normalizeDoc(parsed);
+  if(!confirm('导入将覆盖当前导图，确定继续吗？'))return;
+  roots=doc.roots;relations=doc.relations;selected=roots[0].id;selectedRel=null;
+  history=[snap()];index=0;save();render();fit();
+  $('backupPane').classList.remove('open');message('导入成功 · 建议再下载一份备份');
+}
+$('child').onclick=addChild;$('sibling').onclick=addSibling;$('newroot').onclick=addRoot;$('rename').onclick=startEdit;$('remove').onclick=removeSel;$('promote').onclick=promote;
+$('up').onclick=()=>move(-1);$('down').onclick=()=>move(1);$('fold').onclick=fold;
+$('undo').onclick=()=>{if(index>0){index--;restore()}};$('redo').onclick=()=>{if(index<history.length-1){index++;restore()}};
+$('fit').onclick=fit;$('plus').onclick=()=>zoomAt(1.2,board.clientWidth/2,board.clientHeight/2);$('minus').onclick=()=>zoomAt(1/1.2,board.clientWidth/2,board.clientHeight/2);
+$('colorBtn').onclick=()=>{const r=$('colorBtn').getBoundingClientRect();openPalette(r.left,r.bottom+6)};
+$('relateBtn').onclick=()=>{if(!selected)return;relateMode=!relateMode;board.classList.toggle('relating',relateMode);updateTools();updateInfo();message(relateMode?'连线模式：点击目标节点完成连线（Esc 取消）':'已退出连线模式')};
+$('paletteClose').onclick=()=>{palette.hidden=true};
+$('help').onclick=()=>open('helpPane');$('backup').onclick=()=>open('backupPane');
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
+document.querySelectorAll('.shade').forEach(s=>s.addEventListener('click',e=>{if(e.target===s)s.classList.remove('open')}));
+$('copy').onclick=async()=>{const t=$('jsonText');try{await navigator.clipboard.writeText(t.value);message('JSON 已复制')}catch(e){t.focus();t.select();message('自动复制不可用，请按 Ctrl/⌘+C 手动复制')}};
+$('download').onclick=()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([exportText()],{type:'application/json'}));a.href=url;a.download='mindmap-'+(mapId.replace(/[^\w一-龥-]/g,'_')||'backup')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);message('已请求下载；若被 Notion 限制，可手动复制 JSON')};
+$('choose').onclick=()=>$('file').click();
+$('file').onchange=async e=>{const f=e.target.files?e.target.files[0]:null;if(!f)return;if(f.size>2_000_000){message('JSON 文件过大');return}try{$('jsonText').value=await f.text();message('已读取 JSON 文件，请点击「导入并覆盖」')}catch(err){message('文件读取失败：'+err.message)}e.target.value=''};
+$('apply').onclick=()=>{try{importText($('jsonText').value)}catch(e){$('importError').textContent='导入失败：'+e.message;message('导入失败')}};
+
+/* ---------- 画布手势 ---------- */
+let panning=false,lastX=0,lastY=0;
+board.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.node'))return;
+  if(relating)endRelate();
+  if(relateMode){relateMode=false;board.classList.remove('relating');updateTools();message('已取消连线模式')}
+  if(selectedRel){selectedRel=null;render()}
+  panning=true;lastX=e.clientX;lastY=e.clientY;board.classList.add('dragging');
+  try{board.setPointerCapture(e.pointerId)}catch(err){}
+});
+board.addEventListener('pointermove',e=>{
+  if(!panning)return;
+  tx+=e.clientX-lastX;ty+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;transform();
+});
+board.addEventListener('pointerup',()=>{panning=false;board.classList.remove('dragging')});
+board.addEventListener('pointercancel',()=>{panning=false;board.classList.remove('dragging')});
+board.addEventListener('wheel',e=>{
+  if(!e.ctrlKey&&!e.metaKey)return;
+  e.preventDefault();
+  const r=board.getBoundingClientRect();
+  zoomAt(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
+},{passive:false});
+document.addEventListener('pointerdown',e=>{
+  if(palette.hidden)return;
+  if(palette.contains(e.target)||e.target===$('colorBtn'))return;
+  palette.hidden=true;
+},true);
+
+/* ---------- 键盘 ---------- */
+function nav(dx,dy){
+  const f=selected?findNode(selected):null;if(!f)return;
+  if(dy){
+    const arr=f.parent?f.parent.children:roots,i=arr.indexOf(f.node),j=i+dy;
+    if(j>=0&&j<arr.length)select(arr[j].id);
+    return;
+  }
+  if(dx<0){if(f.parent)select(f.parent.id);return}
+  if(dx>0){
+    if(!f.node.children.length)return;
+    if(f.node.collapsed){f.node.collapsed=false;commit()}
+    select(f.node.children[0].id);
+  }
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(relating){endRelate();return}
+    if(relateMode){relateMode=false;board.classList.remove('relating');updateTools();return message('已退出连线模式')}
+    if(!palette.hidden){palette.hidden=true;return}
+    document.querySelectorAll('.shade.open').forEach(x=>x.classList.remove('open'));
+    return;
+  }
+  if(document.querySelector('.shade.open')||editing)return;
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
+  if(!selected&&!selectedRel)return;
+  const mod=e.metaKey||e.ctrlKey;
+  if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)$('redo').click();else $('undo').click();return}
+  if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();$('redo').click();return}
+  if(e.key==='Tab'){e.preventDefault();addChild()}
+  else if(e.key==='Enter'){e.preventDefault();addSibling()}
+  else if(e.key==='F2'){e.preventDefault();startEdit()}
+  else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeSel()}
+  else if(e.key==='ArrowUp'){e.preventDefault();if(e.altKey)move(-1);else nav(0,-1)}
+  else if(e.key==='ArrowDown'){e.preventDefault();if(e.altKey)move(1);else nav(0,1)}
+  else if(e.key==='ArrowLeft'){e.preventDefault();nav(-1,0)}
+  else if(e.key==='ArrowRight'){e.preventDefault();nav(1,0)}
+});
+
+/* ---------- 启动 ---------- */
+let doc;
+try{doc=loadDoc()}catch(e){doc=seed();message('本地数据读取失败，已使用示例导图')}
+roots=doc.roots;relations=doc.relations;
+selected=roots[0]?roots[0].id:null;
+history=[snap()];index=0;
+if(!localStorage.getItem(KEY))save();
+render();
+requestAnimationFrame(fit);
+})();
+</script>
+</body>
+</html>
